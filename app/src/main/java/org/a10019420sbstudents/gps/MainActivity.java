@@ -27,7 +27,7 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity implements LocationListener {
 
     List<Address> addresses;
-
+    ArrayList<FavoriteLocation> favoriteLocations = new ArrayList<>();
     TextView distanceCovered;
     TextView latitude;
     TextView longitude;
@@ -93,6 +93,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         }
         address.setText(addresses.get(0).getAddressLine(0));
+        Boolean check = false;
+        for(int i = 0; i < favoriteLocations.size(); i++){
+            if(favoriteLocations.get(i).getAddress() == addresses.get(0)){
+                check = true;
+            }
+        }
+        if(!(check)){
+            favoriteLocations.add(new FavoriteLocation(addresses.get(0), ));
+        }
         oldLocation = location;
         distanceCovered.setText("distance:" + distanceSum);
         long currentTime = System.currentTimeMillis();
