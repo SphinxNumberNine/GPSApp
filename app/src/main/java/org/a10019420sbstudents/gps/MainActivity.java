@@ -21,21 +21,29 @@ import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements LocationListener {
 
     List<Address> addresses;
+    ArrayList<Long> times;
     ArrayList<FavoriteLocation> favoriteLocations = new ArrayList<>();
     TextView distanceCovered;
     TextView latitude;
     TextView longitude;
     TextView address;
     TextView elapsedTime;
+    TextView elapsedTimeAtPrev;
+    TextView favoriteLatitude;
+    TextView favoriteLongitude;
+    TextView favoriteAddress;
+    TextView timeAtFavoriteLocation;
     Geocoder geocoder;
     Location oldLocation;
     long startTime;
+    long currentLocationStartTime;
     float distanceSum = 0;
 
     @Override
@@ -52,6 +60,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         address = (TextView) findViewById(R.id.address);
         distanceCovered = (TextView) findViewById(R.id.distance);
         elapsedTime = (TextView) findViewById(R.id.elapsedTime);
+        elapsedTimeAtPrev = (TextView) findViewById(R.id.lastLocationElapsedTime);
+        favoriteLatitude = (TextView) findViewById(R.id.latitude);
+        favoriteLongitude = (TextView) findViewById(R.id.longitude);
+        favoriteAddress = (TextView) findViewById(R.id.favoriteAddress);
+        timeAtFavoriteLocation = (TextView) findViewById(R.id.timeAtFavorite);
         geocoder = new Geocoder(this, Locale.US);
         startTime = System.currentTimeMillis();
         if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
@@ -77,7 +90,31 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     }
 
     public void onLocationChanged(Location location){
-        if((oldLocation != null) && (SystemClock.elapsedRealtime() >= 5000)){
+        try {
+            long timeSpentAtPrev = System.currentTimeMillis() - currentLocationStartTime;
+            elapsedTimeAtPrev.setText((timeSpentAtPrev / 1000) + " seconds");
+            boolean newLocation = true;
+            for(int x = 0; x < favoriteLocations.size(); x++){
+                if(favoriteLocations.get(x).getLocation() == oldLocation){
+                    newLocation = false;
+                }
+            }
+            if(newLocation){
+                favoriteLocations.add(new FavoriteLocation(oldLocation, timeSpentAtPrev));
+            }
+            else{
+                for(int x = 0; x < favoriteLocations.size(); x++){
+                    if(favoriteLocations.get(x).getLocation() == oldLocation){
+                        favoriteLocations.get(x).setTime(favoriteLocations.get(x).getTime() + timeSpentAtPrev);
+                    }
+                }
+            }
+        }
+        catch(Exception e){
+
+        }
+        currentLocationStartTime = System.currentTimeMillis();
+        if((oldLocation != null) && (SystemClock.elapsedRealtime() >= 10000)){
             float distance = location.distanceTo(oldLocation);
             distanceSum += distance;
         }
@@ -93,19 +130,42 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         }
         address.setText(addresses.get(0).getAddressLine(0));
-        Boolean check = false;
-        for(int i = 0; i < favoriteLocations.size(); i++){
-            if(favoriteLocations.get(i).getAddress() == addresses.get(0)){
-                check = true;
+        oldLocation = location;
+        distanceCovered.setText(distanceSum + " meters");
+        long currentTime = System.currentTimeMillis();
+        elapsedTime.setText(((currentTime - startTime)/1000) + " seconds");
+        int largestElement = -1;
+        try {
+            for (int x = 0; x < favoriteLocations.size(); x++) {
+                int largest = x;
+                for (int y = x + 1; y < favoriteLocations.size(); y++) {
+                    if (favoriteLocations.get(y).getTime() > favoriteLocations.get(x).getTime()) {
+                        largest = y;
+                    }
+                }
+                FavoriteLocation temp = favoriteLocations.get(x);
+                favoriteLocations.set(x, favoriteLocations.get(largest));
+                favoriteLocations.set(largest, temp);
+            }
+            Location favoriteLocation = favoriteLocations.get(0).getLocation();
+            favoriteLatitude.setText(Double.toString(favoriteLocation.getLatitude()));
+            favoriteLongitude.setText(Double.toString(favoriteLocation.getLongitude()));
+            long timeSpentAtFavoriteLocation = favoriteLocations.get(0).getTime();
+            timeAtFavoriteLocation.setText(timeSpentAtFavoriteLocation + " seconds");
+            try {
+                addresses = geocoder.getFromLocation(favoriteLocation.getLatitude(), favoriteLocation.getLongitude(), 1);
+                Address favoriteAddress1 = addresses.get(0);
+                favoriteAddress.setText(favoriteAddress1.getAddressLine(0));
+            } catch (IOException e) {
+
+            } catch (Exception e) {
+
             }
         }
-        if(!(check)){
-            favoriteLocations.add(new FavoriteLocation(addresses.get(0), ));
+        catch(Exception e){
+
         }
-        oldLocation = location;
-        distanceCovered.setText("distance:" + distanceSum);
-        long currentTime = System.currentTimeMillis();
-        elapsedTime.setText("Elapsed Time: " + ((currentTime - startTime)/1000));
+
     }
 
     public void onStatusChanged(String provider, int status, Bundle extras){

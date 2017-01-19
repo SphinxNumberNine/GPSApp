@@ -7,16 +7,21 @@ import android.location.Location;
  * Created by 10019420 on 1/17/2017.
  */
 public class FavoriteLocation {
-    Address address;
+    Location location;
     long time;
 
-    public FavoriteLocation(Address address, long time){
-        this.address = address;
+    public FavoriteLocation(Location location, long time){
+        this.location = location;
         this.time = time;
     }
 
-    public Address getAddress() {
-        return address;
+    public FavoriteLocation(Location location){
+        this.location = location;
+        this.time = 0;
+    }
+
+    public Location getLocation() {
+        return location;
     }
 
     public long getTime() {
